@@ -1,2 +1,1 @@
-# adsadcd
-ADS1115: 16-Bit ADC - 4 Channel with Programmable Gain Amplifier
+adsadcd: ADS1xxx I2C sensor; 12/16 bit Analog to Digital Convertor

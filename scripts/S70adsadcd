@@ -1,0 +1,24 @@
+#! /bin/sh
+
+. /etc/init.d/project-shell-functions
+
+NAME=$(get_script_name $0)
+load_defaults $NAME
+
+case "$1" in
+	start)
+		# ADSADC communicates over I2C; even though it is possible
+		# to use lockf/flock for bus access I use the same mechanism
+		# as for the SPI. It is less elegant as killing the daemon
+		# does not automatically release semaphore and lockdown is
+		# possible.
+		# TODO: use lockf/flock for i2c-0 and i2c-1
+		rm -f /dev/shm/sem.i2c
+		start
+	;;
+	stop|status|restart)
+		$1
+	;;
+	*)
+		usage
+esac
