@@ -1,1 +1,1 @@
-DAEMON_ARGS="--readings 0,6 --json /run/${NAME}.json"
+DAEMON_ARGS="--readings 0,6 --json /tmp/${NAME}.json"
