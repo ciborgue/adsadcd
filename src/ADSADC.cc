@@ -6,28 +6,33 @@ using namespace std;
 // #define ADSADC_DEBUG_LOGGING
 
 static const float PGA_VOLTAGE[] {
-  6.144, 4.096, 2.048, 1.024, 0.512, 0.256, 0.256, 0.256,
+	6.144, 4.096, 2.048, 1.024, 0.512, 0.256, 0.256, 0.256,
 };
 static const char * const PGA_DESCRIPTION[] {
-  "AIN0/AIN1",
-  "AIN0/AIN3",
-  "AIN1/AIN3",
-  "AIN2/AIN3",
-  "AIN0/GRND",
-  "AIN1/GRND",
-  "AIN2/GRND",
-  "AIN3/GRND",
+	"AIN0/AIN1",
+	"AIN0/AIN3",
+	"AIN1/AIN3",
+	"AIN2/AIN3",
+	"AIN0/GRND",
+	"AIN1/GRND",
+	"AIN2/GRND",
+	"AIN3/GRND",
+};
+static const char * const I2C_INTERFACE[] {
+	"/dev/i2c-0",
+	"/dev/i2c-1",
 };
 
 ADSADC::ADSADC(I2CSETUP& setup) : i2c(setup) {}
 ADSADC::~ADSADC() {}
 void ADSADC::reset() {
-  int generalFd;
-  if ((generalFd = wiringPiI2CSetup(0x00)) == -1) {
-    throw runtime_error("can't init I2C [GENERAL]");
-  }
-  wiringPiI2CReadReg8(generalFd, 0x06); // send GENERAL reset
-  close(generalFd);
+	const char * i2cName = I2C_INTERFACE[i2c.channel];
+	int generalFd;
+	if ((generalFd = wiringPiI2CSetupInterface(i2cName, 0x00)) == -1) {
+		throw runtime_error("can't init I2C [GENERAL]");
+	}
+	wiringPiI2CReadReg8(generalFd, 0x06); // send GENERAL reset
+	close(generalFd);
 }
 void ADSADC::waitForStatus() {
 	for (int i = 0; i < DEFAULT_RETRY_COUNT; i++) {
@@ -40,19 +45,19 @@ void ADSADC::waitForStatus() {
 	throw runtime_error("Timeout waiting for ADSADC status");
 }
 void ADSADC::acquireData() {
-	if ((fd = wiringPiI2CSetup(i2c.address)) == -1) {
+	const char * i2cName = I2C_INTERFACE[i2c.channel];
+	if ((fd = wiringPiI2CSetupInterface(i2cName, i2c.address)) == -1) {
 		throw runtime_error("can't open I2C bus");
 	}
-	// NOTE you can't add more than one ADS using this method even though ADS
-	// supports multiple addresses. General reset affects ALL ADSes on I2C at
-	// once and you'll need to set them up individually; this is outside of the
-	// scope of this project
+	// NOTE you can't add more than one ADS pet bus using this method even
+	// though ADS supports addressing via pins. General reset affects ALL ADSes
+	// on I2C at once and you'll need to set them up individually; this is
+	// outside of the scope of this project
 	reset();
 	waitForStatus();
 	if (configRegister.raw != 0x8385) {
-		// TODO not sure if I ever get here; if ADS is missing waitForStatus fails
-	throw runtime_error("ADSADC: magic is wrong after reset;"
-		" is ADS wired correctly?");
+		throw runtime_error("ADSADC: magic is wrong after reset;"
+				" is ADS wired correctly?");
 	}
 	for (int mux = 0; mux < 8; mux++) { // read all possible inputs; 0..7
 		for (int pga = 7; pga >= 0; pga--) {
@@ -101,16 +106,16 @@ const char *ADSADC::toString() {
 	for (int i = 4; i < 8; i++) {
 		int start = strlen(text);
 		snprintf(text + start, sizeof text - start,
-			" %s[%d]: %.5f", PGA_DESCRIPTION[i], data[i].pga, voltage(i));
+				" %s[%d]: %.5f", PGA_DESCRIPTION[i], data[i].pga, voltage(i));
 	}
 	return text;
 }
 const char *ADSADC::toJSON(int readings) {
 	snprintf(text, sizeof text,
-		"\"ADSADC%02X%02X\": {", i2c.channel, i2c.address);
+			"\"ADSADC%02X%02X\": {", i2c.channel, i2c.address);
 	int start = strlen(text);
 	strftime(text + start, sizeof text - start,
-		"\"timestamp\": \"%FT%TZ\"", localtime(&tmstamp)); // for JSON syntax
+			"\"timestamp\": \"%FT%TZ\"", localtime(&tmstamp)); // for JSON syntax
 	start = strlen(text);
 	for (int mux = 0; mux < 8; mux++) {
 		if ((readings & (1 << mux)) == 0) {
@@ -118,9 +123,9 @@ const char *ADSADC::toJSON(int readings) {
 		}
 		start = strlen(text);
 		snprintf(text + start, sizeof text - start,
-			", \"%s\": {\"pga\": %d, \"raw\": \"0x%04x\", \"voltage\": %.5f}",
-			PGA_DESCRIPTION[mux], data[mux].pga,
-			(uint16_t) data[mux].raw, voltage(mux));
+				", \"%s\": {\"pga\": %d, \"raw\": \"0x%04x\", \"voltage\": %.5f}",
+				PGA_DESCRIPTION[mux], data[mux].pga,
+				(uint16_t) data[mux].raw, voltage(mux));
 	}
 	start = strlen(text);
 	snprintf(text + start, sizeof text - start, "}");
