@@ -111,12 +111,12 @@ const char *ADSADC::toString() {
 	out = strlen(text);
 
 	snprintf(text + out, sizeof text - out,
-			"iam: ADS%d", is1115 ? 1115 : 1015);
+			", iam: ADS%d", is1115 ? 1115 : 1015);
 
 	for (int i = 4; i < 8; i++) {
 		out = strlen(text);
 		snprintf(text + out, sizeof text - out,
-				" %s[pga:%d]: %.3f", PGA_DESCRIPTION[i], data[i].pga, voltage(i));
+				", %s[pga:%d]: %.5f", PGA_DESCRIPTION[i], data[i].pga, voltage(i));
 	}
 
 	return text;
