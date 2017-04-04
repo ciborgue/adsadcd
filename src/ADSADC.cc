@@ -102,12 +102,23 @@ float ADSADC::voltage(int mux) {
 		* PGA_VOLTAGE[data[mux].pga];
 }
 const char *ADSADC::toString() {
-	snprintf(text, sizeof text, is1115 ? "ADS1115:" : "ADS1015:");
+	strncpy(text, "tm:", sizeof text);
+
+	int out = strlen(text);
+	strftime(text + out, sizeof text - out,
+			"\"%Y-%m-%d %T %z\"", localtime(&tmstamp));
+
+	out = strlen(text);
+
+	snprintf(text + out, sizeof text - out,
+			"iam: ADS%d", is1115 ? 1115 : 1015);
+
 	for (int i = 4; i < 8; i++) {
-		int start = strlen(text);
-		snprintf(text + start, sizeof text - start,
-				" %s[%d]: %.5f", PGA_DESCRIPTION[i], data[i].pga, voltage(i));
+		out = strlen(text);
+		snprintf(text + out, sizeof text - out,
+				" %s[pga:%d]: %.3f", PGA_DESCRIPTION[i], data[i].pga, voltage(i));
 	}
+
 	return text;
 }
 const char *ADSADC::toJSON(int readings) {
